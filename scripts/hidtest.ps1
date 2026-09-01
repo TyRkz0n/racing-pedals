@@ -225,15 +225,29 @@ if ($Seconds -gt 0) {
     Write-Host ""
     Write-Host "$count reports received" -ForegroundColor Cyan
     Write-Host ""
+    $anyIdle = $false
     for ($a = 0; $a -lt 3; $a++) {
         $travel = $max[$a] - $min[$a]
         if ($travel -gt ($AXIS_MAX / 2)) {
             Write-Host ("  {0}  full travel seen - OK" -f $labels[$a]) -ForegroundColor Green
         } elseif ($travel -gt 200) {
-            Write-Host ("  {0}  only moved {1} of {2} - partial travel or noise" -f $labels[$a], $travel, $AXIS_MAX) -ForegroundColor Yellow
+            Write-Host ("  {0}  only moved {1} of {2} - partial travel" -f $labels[$a], $travel, $AXIS_MAX) -ForegroundColor Yellow
+        } elseif ($cur[$a] -eq 0) {
+            # Auto-ranging reports 0 until it has seen the pedal move, so this is
+            # what an untouched-but-perfectly-healthy pedal looks like too.
+            Write-Host ("  {0}  no movement seen (sitting at 0)" -f $labels[$a]) -ForegroundColor Yellow
+            $anyIdle = $true
         } else {
-            Write-Host ("  {0}  DID NOT MOVE (stuck at {1}) - check wiring on that GPIO" -f $labels[$a], $cur[$a]) -ForegroundColor Red
+            Write-Host ("  {0}  FROZEN at {1} - not 0, so the pin has a fixed voltage: check wiring" -f $labels[$a], $cur[$a]) -ForegroundColor Red
         }
+    }
+
+    if ($anyIdle) {
+        Write-Host ""
+        Write-Host "An axis 'sitting at 0' is ambiguous: auto-ranging reports 0 until it has" -ForegroundColor DarkGray
+        Write-Host "seen that pedal move, so an untouched working pedal looks identical to a" -ForegroundColor DarkGray
+        Write-Host "dead one. Re-run and sweep each pedal fully to tell them apart, or use" -ForegroundColor DarkGray
+        Write-Host ".\scripts\monitor.ps1 on the COM port to watch the raw ADC counts." -ForegroundColor DarkGray
     }
 }
 

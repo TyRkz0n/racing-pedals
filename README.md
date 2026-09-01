@@ -108,7 +108,12 @@ Auto-ranging is **on** by default (`PEDAL_AUTO_RANGE` in
 learns it from the movement it sees, so:
 
 **After every power-up, press each pedal once through its full travel.** The
-axis then spans the whole range.
+axis then spans the whole range. Until a pedal has been swept it reports 0, so a
+freshly reset board looks like it has three dead pedals — it does not.
+
+The learned range only ever widens, never shrinks, so if a pin was left floating
+(or a pot was faulty) while the board was running, its range was learned from
+noise. Reset the board after fixing the wiring to throw that away, then sweep.
 
 To make it permanent instead, watch the `raw=` values in the serial monitor at
 rest and fully pressed, put those numbers into the `raw_min` / `raw_max` fields
@@ -209,9 +214,12 @@ need it. To turn it on: `CONFIG_SPIRAM=y` and `CONFIG_SPIRAM_MODE_OCT=y`.
 
 - **Nothing in `joy.cpl`** — check you plugged the *USB/OTG* connector in, not
   just COM. The serial log prints `usb=mounted` once the host enumerates it.
-- **Axis stuck at one value** — that GPIO is not seeing a changing voltage:
-  nothing wired to it, the wiper is not connected, or the pot's ends have no
-  3V3/GND. `hidtest.ps1` names the stuck axis and its GPIO.
+- **Axis sitting at 0** — ambiguous, and *usually fine*. Auto-ranging reports 0
+  until it has seen that pedal move, so an untouched working pedal looks exactly
+  like a dead one. Sweep it and look again before suspecting the wiring.
+- **Axis frozen at some non-zero value** — that GPIO has a fixed voltage on it:
+  wiper not connected, or the pot's ends have no 3V3/GND. `hidtest.ps1` names
+  the axis and its GPIO.
 - **Axis swings wildly on its own** — the pin is floating, i.e. nothing is
   connected. An unwired ADC pin picks up noise, and auto-ranging then stretches
   that noise across the full axis, so it looks like a very twitchy pedal.
