@@ -84,6 +84,9 @@ Requires ESP-IDF v5.x installed (the scripts auto-detect
 
 # Serial monitor on its own (Ctrl+] to exit)
 .\scripts\monitor.ps1
+
+# Live per-axis view of what the PC is actually receiving (USB/OTG cable only)
+.\scripts\hidtest.ps1
 ```
 
 Other switches: `build.ps1 -Clean` (idf.py fullclean),
@@ -125,12 +128,42 @@ Set `invert = true` for a pedal whose voltage *falls* as you press it.
 
 ## Testing it
 
-- **Windows:** `joy.cpl` (Win+R) → *ESP32-S3 Racing Pedals* → Properties. Three
-  axes (X / Y / Z) should move as you press.
+```powershell
+.\scripts\hidtest.ps1
+```
+
+This reads the HID device directly and draws all three axes as separate live
+bars, with a per-axis verdict at the end. It only needs the USB/OTG cable.
+Prefer it over `joy.cpl` for diagnosis — see the warning below.
+
+Other options:
+
 - **Linux:** `jstest /dev/input/js0`, or `evtest`.
-- **Anywhere:** <https://hardwaretester.com/gamepad> in a browser.
-- **Serial monitor:** one line per second with raw ADC counts, scaled axis
-  values, and whether the host has enumerated the device.
+- **Anywhere:** <https://hardwaretester.com/gamepad> in a browser — shows every
+  axis as its own labelled bar.
+- **Serial monitor:** `.\scripts\monitor.ps1` prints one line per second with
+  raw ADC counts, scaled axis values, and whether the host has enumerated the
+  device. This is the only view that shows the *raw ADC* side, so it is what
+  tells you whether a problem is wiring or firmware.
+
+### Why `joy.cpl` looks like it is missing axes
+
+The Windows "Set up USB game controllers" test page does **not** draw one bar
+per axis. It draws:
+
+- **X and Y together as a single 2D crosshair** — throttle moves the dot
+  sideways, brake moves it up and down.
+- **Z as the only separate slider** — the clutch.
+
+So three working pedals look like "one square and one slider", not three bars.
+If you are checking whether all three pedals work, use `hidtest.ps1` or
+hardwaretester.com instead; `joy.cpl` is genuinely misleading here.
+
+If you would rather each pedal got its own labelled slider in `joy.cpl`, change
+the three usages in the report descriptor in `main/usb_hid.c` from X/Y/Z
+(`0x09,0x30` / `0x31` / `0x32`) to, for example, Z/Rz/Slider
+(`0x09,0x32` / `0x35` / `0x36`). Games bind to whatever they are given, so this
+is purely a question of how Windows displays it.
 
 ---
 
@@ -176,8 +209,13 @@ need it. To turn it on: `CONFIG_SPIRAM=y` and `CONFIG_SPIRAM_MODE_OCT=y`.
 
 - **Nothing in `joy.cpl`** — check you plugged the *USB/OTG* connector in, not
   just COM. The serial log prints `usb=mounted` once the host enumerates it.
-- **Axis stuck at 0 or 32767** — auto-ranging has not seen a full sweep yet, or
-  the pot is wired backwards (set `invert = true`).
+- **Axis stuck at one value** — that GPIO is not seeing a changing voltage:
+  nothing wired to it, the wiper is not connected, or the pot's ends have no
+  3V3/GND. `hidtest.ps1` names the stuck axis and its GPIO.
+- **Axis swings wildly on its own** — the pin is floating, i.e. nothing is
+  connected. An unwired ADC pin picks up noise, and auto-ranging then stretches
+  that noise across the full axis, so it looks like a very twitchy pedal.
+- **Axis moves backwards** — set `invert = true` for that pedal in `s_cfg`.
 - **Jittery axis** — lower `PEDAL_EMA_ALPHA`, raise `PEDAL_OVERSAMPLE`, and make
   sure the pot's ground returns to the board's GND.
 - **Flash fails / no COM port** — install the CP2102 or CH340 driver, then
