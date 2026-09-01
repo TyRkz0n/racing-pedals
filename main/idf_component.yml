@@ -1,0 +1,6 @@
+## IDF Component Manager Manifest File
+dependencies:
+  # Espressif's TinyUSB wrapper. Pinned to the 1.x API (tinyusb_driver_install +
+  # application-supplied descriptors) that this project's usb_hid.c is written against.
+  espressif/esp_tinyusb: "^1.4"
+  idf: ">=5.0"

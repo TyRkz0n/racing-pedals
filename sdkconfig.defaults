@@ -1,0 +1,24 @@
+# ---------------------------------------------------------------------------
+# Target: ESP32-S3-WROOM-1 N16R8 (16 MB flash, 8 MB octal PSRAM)
+# ---------------------------------------------------------------------------
+CONFIG_IDF_TARGET="esp32s3"
+
+# 16 MB flash. DIO/80 MHz is the safe setting that works on every N16R8 module;
+# switch to QIO if you want the extra read bandwidth (this app does not need it).
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+
+# PSRAM is not needed by this firmware, so it stays off. To enable the 8 MB of
+# octal PSRAM on the R8 module: CONFIG_SPIRAM=y and CONFIG_SPIRAM_MODE_OCT=y.
+
+# ---------------------------------------------------------------------------
+# USB: one HID interface, no CDC/MSC/MIDI.
+# ---------------------------------------------------------------------------
+CONFIG_TINYUSB_HID_COUNT=1
+
+# ---------------------------------------------------------------------------
+# 1 ms tick so the 500 Hz sample/report loop keeps an accurate period.
+# ---------------------------------------------------------------------------
+CONFIG_FREERTOS_HZ=1000
